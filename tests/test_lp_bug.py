@@ -3,7 +3,7 @@ import pytest
 from unittest import TestCase
 from unittest.mock import Mock
 
-from LpCli.lp_bug import lp_bug
+from LpCli.lp_bug import lp_bug, ubuntu_devel
 
 
 class test_lp_bug(TestCase):
@@ -22,6 +22,8 @@ class test_lp_bug(TestCase):
         self.task7 = Mock()
         self.task8 = Mock()
         self.task9 = Mock()
+        self.task10 = Mock()
+        self.task11 = Mock()
 
         self.task1.bug_target_name = 'systemd (Ubuntu)'
         self.task2.bug_target_name = 'vim (Debian)'
@@ -32,6 +34,10 @@ class test_lp_bug(TestCase):
         self.task7.bug_target_name = 'systemd (Ubuntu Focal)'
         self.task8.bug_target_name = 'systemd (Ubuntu Bionic)'
         self.task9.bug_target_name = 'glibc (Ubuntu Bionic)'
+
+        self.task10.bug_target_name = 'casper (Ubuntu)'
+        self.task11.bug_target_name = 'casper (Ubuntu '+ubuntu_devel+')'
+
 
         self.lp = Mock()
         self.lp.bugs = {1234567: self.bug1}
@@ -91,6 +97,16 @@ class test_lp_bug(TestCase):
         print(series)
         self.assertEqual(len(series), 3)
 
+    def test_affected_series_double(self):
+        bug = lp_bug(1234567, self.lp)
+
+        self.bug1.bug_tasks = [self.task10, self.task11]
+
+        series = bug.affected_series('casper')
+        self.assertEqual(len(series), 1)
+        self.assertListEqual(
+            series, ['Impish'])
+
     def test_affected_versions(self):
         bug = lp_bug(1234567, self.lp)
 
@@ -114,3 +130,4 @@ class test_lp_bug(TestCase):
         self.assertEqual(len(versions), 3)
         self.assertListEqual(
             versions, ['21.10', '20.04', '18.04'])
+

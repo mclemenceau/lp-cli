@@ -28,9 +28,6 @@ class lp_bug():
 
         self.bug = self.api.bugs[self.id]
 
-    def __repr__(self):
-        return "{%d, %s}" % (self.id, self.title)
-
     @property
     def title(self):
         return self.bug.title
@@ -60,11 +57,10 @@ class lp_bug():
                 serie = task_name[task_name.index("Ubuntu")+7:-1]
                 if serie == '':
                     series.append(ubuntu_devel)
-                elif serie in ubuntu_version.keys():
+                elif serie in ubuntu_version.keys() and serie not in series:
                     series.append(serie)
 
         return series
-
 
     def affected_versions(self, package):
         """
@@ -72,3 +68,23 @@ class lp_bug():
         by this bug. Convert affected serie into a version number
         """
         return [ubuntu_version.get(x) for x in self.affected_series(package)]
+
+    def __repr__(self):
+        return self.dict().__str__()
+
+    def __str__(self):
+        string = "id: {}\ntitle: {}\n".format(self.id, self.title)
+        string += "packages:"
+        for pkg in self.affected_packages():
+            string += "\n - {} :{}".format(pkg,self.affected_series(pkg))
+
+        return string
+
+    def dict(self):
+        dict = {}
+        dict['id'] = self.id
+        dict['title'] = self.title
+        for pkg in self.affected_packages():
+            dict[pkg] = self.affected_series(pkg)
+
+        return dict
