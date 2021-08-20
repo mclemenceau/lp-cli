@@ -12,6 +12,7 @@ class test_lp_bug(TestCase):
         self.bug1 = Mock()
         self.bug1.title = "This is the title of a bug"
         self.bug1.description = "This is the longer description of a bug"
+        self.bug1.bug_tasks = []
 
         self.task1 = Mock()
         self.task2 = Mock()
@@ -26,18 +27,28 @@ class test_lp_bug(TestCase):
         self.task11 = Mock()
 
         self.task1.bug_target_name = 'systemd (Ubuntu)'
+        self.task1.status = 'New'
         self.task2.bug_target_name = 'vim (Debian)'
+        self.task2.status = 'Confirmed'
         self.task3.bug_target_name = 'glibc (Ubuntu)'
+        self.task3.status = 'New'
         self.task4.bug_target_name = 'glibc (Ubuntu Focal)'
+        self.task4.status = 'Incomplete'
         self.task5.bug_target_name = 'glibc (Ubuntu None)'
+        self.task5.status = 'Triaged'
         self.task6.bug_target_name = 'glibc !@#$)'
+        self.task6.status = 'Incomplete'
         self.task7.bug_target_name = 'systemd (Ubuntu Focal)'
+        self.task7.status = 'Fix Committed'
         self.task8.bug_target_name = 'systemd (Ubuntu Bionic)'
+        self.task8.status = 'Fix Released'
         self.task9.bug_target_name = 'glibc (Ubuntu Bionic)'
+        self.task9.status = 'Triaged'
 
         self.task10.bug_target_name = 'casper (Ubuntu)'
+        self.task10.status = 'New'
         self.task11.bug_target_name = 'casper (Ubuntu '+ubuntu_devel+')'
-
+        self.task11.status = 'Fix Released'
 
         self.lp = Mock()
         self.lp.bugs = {1234567: self.bug1}
@@ -49,9 +60,13 @@ class test_lp_bug(TestCase):
         with pytest.raises(ValueError):
             return lp_bug(1234567, None)
 
-    def test_bug_init_bad_bug(self):
+    def test_bug_init_bad_type_bug(self):
         with pytest.raises(TypeError):
             return lp_bug("bad", self.lp)
+
+    def test_bug_init_bad_bug_doesnt_exist(self):
+        with pytest.raises(KeyError):
+            return lp_bug(123456789, self.lp)
 
     def test_default_init(self):
         bug = lp_bug(1234567, self.lp)
@@ -60,30 +75,32 @@ class test_lp_bug(TestCase):
         self.assertEqual(bug.desc, "This is the longer description of a bug")
 
     def test_affected_packages(self):
+        self.bug1.bug_tasks = [self.task1, self.task2, self.task3]
         bug = lp_bug(1234567, self.lp)
 
-        self.bug1.bug_tasks = [self.task1, self.task2, self.task3]
         packages = bug.affected_packages()
         self.assertEqual(len(packages), 2)
         self.assertListEqual(
             packages, ['systemd', 'glibc'])
 
         self.bug1.bug_tasks = [self.task1, self.task7, self.task8]
+        bug = lp_bug(1234567, self.lp)
         packages = bug.affected_packages()
         self.assertEqual(len(packages), 1)
         self.assertListEqual(
             packages, ['systemd'])
 
     def test_affected_series(self):
-        bug = lp_bug(1234567, self.lp)
-
         self.bug1.bug_tasks = [
                             self.task1, self.task2, self.task3,
                             self.task4, self.task5, self.task6,
                             self.task7, self.task8, self.task9]
 
+        bug = lp_bug(1234567, self.lp)
+
         # Simple default series test
         series = bug.affected_series('systemd')
+
         self.assertEqual(len(series), 3)
         self.assertListEqual(
             series, ['Impish', 'Focal', 'Bionic'])
@@ -98,9 +115,9 @@ class test_lp_bug(TestCase):
         self.assertEqual(len(series), 3)
 
     def test_affected_series_double(self):
-        bug = lp_bug(1234567, self.lp)
-
         self.bug1.bug_tasks = [self.task10, self.task11]
+
+        bug = lp_bug(1234567, self.lp)
 
         series = bug.affected_series('casper')
         self.assertEqual(len(series), 1)
@@ -108,12 +125,12 @@ class test_lp_bug(TestCase):
             series, ['Impish'])
 
     def test_affected_versions(self):
-        bug = lp_bug(1234567, self.lp)
-
         self.bug1.bug_tasks = [
                             self.task1, self.task2, self.task3,
                             self.task4, self.task5, self.task6,
                             self.task7, self.task8, self.task9]
+
+        bug = lp_bug(1234567, self.lp)
 
         versions = bug.affected_versions('systemd')
 
@@ -131,3 +148,7 @@ class test_lp_bug(TestCase):
         self.assertListEqual(
             versions, ['21.10', '20.04', '18.04'])
 
+    # def test_status(self):
+    #     self.assertEqual(0, 3)
+
+# =============================================================================
