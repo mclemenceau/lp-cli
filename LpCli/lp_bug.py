@@ -25,43 +25,51 @@ class lp_bug():
         if not lp_api:
             raise ValueError("Error with Launchpad API")
 
-        self.api = lp_api
-
         try:
-            self.bug = self.api.bugs[self.id]
-
-            self.packages_info = {}
-            for task in self.bug.bug_tasks:
-                package_name = ""
-                task_name = task.bug_target_name
-                task_status = task.status
-                if " (Ubuntu" in task_name:
-                    package_name = task_name.split()[0]
-                else:
-                    continue
-                if package_name not in self.packages_info.keys():
-                    self.packages_info[package_name] = {}
-                serie = task_name[task_name.index("Ubuntu")+7:-1]
-                if serie == '':
-                    serie = ubuntu_devel
-                elif serie not in ubuntu_version.keys():
-                    continue
-
-                if "series" not in self.packages_info[package_name].keys():
-                    self.packages_info[package_name]["series"] = {}
-                self.packages_info[package_name]["series"][serie] =\
-                    {"status": task_status}
+            bug = lp_api.bugs[self.id]
 
         except KeyError:
             raise KeyError("Bug {} isn't in Launchpad".format(id))
 
-    @property
-    def title(self):
-        return self.bug.title
+        self.title = bug.title
+        self.description = bug.description
+        self.heat = bug.heat
 
-    @property
-    def desc(self):
-        return self.bug.description
+        self.packages_info = {}
+        for task in bug.bug_tasks:
+            package_name = ""
+
+            task_name = task.bug_target_name
+            if " (Ubuntu" in task_name:
+                package_name = task_name.split()[0]
+            else:
+                # We skip any package that is not impacting Ubuntu
+                continue
+
+            if package_name not in self.packages_info.keys():
+                self.packages_info[package_name] = {}
+
+            # Grab the Ubuntu serie our of the task name
+            # Set the serie to ubuntu_devel is empty
+            serie = task_name[task_name.index("Ubuntu")+7:-1]
+            if serie == '':
+                serie = ubuntu_devel
+            elif serie not in ubuntu_version.keys():
+                continue
+
+            if "series" not in self.packages_info[package_name].keys():
+                self.packages_info[package_name]["series"] = {}
+
+            if serie not in self.packages_info[package_name]["series"].keys():
+                self.packages_info[package_name]["series"][serie] = {}
+
+            # For each impacted package/serie, capture status
+            self.packages_info[package_name]["series"][serie]["status"]\
+                = task.status
+
+            # For each impacted package/serie, capture importance
+            self.packages_info[package_name]["series"][serie]["importance"]\
+                = task.importance
 
     def affected_packages(self):
         """
@@ -86,9 +94,9 @@ class lp_bug():
         """
         return [ubuntu_version.get(x) for x in self.affected_series(package)]
 
-    def status(self, package, serie):
+    def package_detail(self, package, serie, detail):
         try:
-            return self.packages_info[package]["series"][serie]["status"]
+            return self.packages_info[package]["series"][serie][detail]
         except KeyError:
             return ""
 
@@ -97,11 +105,16 @@ class lp_bug():
 
     def __str__(self):
         string = "LP: #{} : {}".format(self.id, self.title)
+        string += "\nHeat: {}".format(self.heat)
         for pkg in self.affected_packages():
             string += "\n - {}:".format(pkg)
             for serie in self.affected_series(pkg):
-                string += "\n   - {} : {}".\
-                    format(serie, self.status(pkg, serie))
+                string += "\n   - {} : {} ({})".\
+                    format(
+                        serie,
+                        self.package_detail(pkg, serie, "status"),
+                        self.package_detail(pkg, serie, "importance")
+                        )
 
         return string
 

@@ -11,7 +11,9 @@ class test_lp_bug(TestCase):
     def setUp(self):
         self.bug1 = Mock()
         self.bug1.title = "This is the title of a bug"
-        self.bug1.description = "This is the longer description of a bug"
+        self.bug1.description = "This is the longer description"
+        self.bug1.heat = "100"
+        self.bug1.importance = "Undecided"
         self.bug1.bug_tasks = []
 
         self.task1 = Mock()
@@ -72,7 +74,8 @@ class test_lp_bug(TestCase):
         bug = lp_bug(1234567, self.lp)
         self.assertEqual(bug.id, 1234567)
         self.assertEqual(bug.title, "This is the title of a bug")
-        self.assertEqual(bug.desc, "This is the longer description of a bug")
+        self.assertEqual(bug.description, "This is the longer description")
+        self.assertEqual(bug.heat, "100")
 
     def test_affected_packages(self):
         self.bug1.bug_tasks = [self.task1, self.task2, self.task3]
@@ -128,7 +131,8 @@ class test_lp_bug(TestCase):
         self.bug1.bug_tasks = [
                             self.task1, self.task2, self.task3,
                             self.task4, self.task5, self.task6,
-                            self.task7, self.task8, self.task9]
+                            self.task7, self.task8, self.task9,
+                            self.task10, self.task11]
 
         bug = lp_bug(1234567, self.lp)
 
@@ -148,7 +152,22 @@ class test_lp_bug(TestCase):
         self.assertListEqual(
             versions, ['21.10', '20.04', '18.04'])
 
-    # def test_status(self):
-    #     self.assertEqual(0, 3)
+    def test_package_status(self):
+        self.bug1.bug_tasks = [
+                            self.task1, self.task2, self.task3,
+                            self.task4, self.task5, self.task6,
+                            self.task7, self.task8, self.task9,
+                            self.task10, self.task11]
+
+        bug = lp_bug(1234567, self.lp)
+
+        # test with a missing serie and make sure it defaults to ubuntu_devel
+        self.assertEqual(
+            bug.package_detail("glibc", 'Focal', "status"), "Incomplete"
+            )
+        self.assertEqual(
+            bug.package_detail("systemd", ubuntu_devel, "status"), "New"
+            )
+
 
 # =============================================================================

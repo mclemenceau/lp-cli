@@ -18,6 +18,7 @@ def main():
         bug = lp_bug(int(args[0]), lp)
 
         print(bug)
+
         return 0
 
     return 1
