@@ -42,34 +42,31 @@ class lp_bug():
             task_name = task.bug_target_name
             if " (Ubuntu" in task_name:
                 package_name = task_name.split()[0]
-            else:
-                # We skip any package that is not impacting Ubuntu
-                continue
 
-            if package_name not in self.packages_info.keys():
-                self.packages_info[package_name] = {}
+                if package_name not in self.packages_info.keys():
+                    self.packages_info[package_name] = {}
 
-            # Grab the Ubuntu serie our of the task name
-            # Set the serie to ubuntu_devel is empty
-            serie = task_name[task_name.index("Ubuntu")+7:-1]
-            if serie == '':
-                serie = ubuntu_devel
-            elif serie not in ubuntu_version.keys():
-                continue
+                # Grab the Ubuntu serie our of the task name
+                # Set the serie to ubuntu_devel is empty
+                serie = task_name[task_name.index("Ubuntu")+7:-1]
+                if serie == '':
+                    serie = ubuntu_devel
+                elif serie not in ubuntu_version.keys():
+                    continue
 
-            if "series" not in self.packages_info[package_name].keys():
-                self.packages_info[package_name]["series"] = {}
+                if "series" not in self.packages_info[package_name].keys():
+                    self.packages_info[package_name]["series"] = {}
 
-            if serie not in self.packages_info[package_name]["series"].keys():
-                self.packages_info[package_name]["series"][serie] = {}
+                if serie not in self.packages_info[package_name]["series"].keys():
+                    self.packages_info[package_name]["series"][serie] = {}
 
-            # For each impacted package/serie, capture status
-            self.packages_info[package_name]["series"][serie]["status"]\
-                = task.status
+                # For each impacted package/serie, capture status
+                self.packages_info[package_name]["series"][serie]["status"]\
+                    = task.status
 
-            # For each impacted package/serie, capture importance
-            self.packages_info[package_name]["series"][serie]["importance"]\
-                = task.importance
+                # For each impacted package/serie, capture importance
+                self.packages_info[package_name]["series"][serie]["importance"]\
+                    = task.importance
 
     def affected_packages(self):
         """

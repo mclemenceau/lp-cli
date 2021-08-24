@@ -30,6 +30,7 @@ class test_lp_bug(TestCase):
 
         self.task1.bug_target_name = 'systemd (Ubuntu)'
         self.task1.status = 'New'
+        self.task1.importance = 'Critical'
         self.task2.bug_target_name = 'vim (Debian)'
         self.task2.status = 'Confirmed'
         self.task3.bug_target_name = 'glibc (Ubuntu)'
@@ -152,7 +153,7 @@ class test_lp_bug(TestCase):
         self.assertListEqual(
             versions, ['21.10', '20.04', '18.04'])
 
-    def test_package_status(self):
+    def test_package_detail(self):
         self.bug1.bug_tasks = [
                             self.task1, self.task2, self.task3,
                             self.task4, self.task5, self.task6,
@@ -168,6 +169,36 @@ class test_lp_bug(TestCase):
         self.assertEqual(
             bug.package_detail("systemd", ubuntu_devel, "status"), "New"
             )
+        # test for detail that doesn't exist
+        self.assertEqual(
+            bug.package_detail("systemd", ubuntu_devel, "age"), ""
+            )
 
+    def test_bug_str(self):
+        bug = lp_bug(1234567, self.lp)
+        bug_str = "LP: #1234567 : This is the title of a bug\nHeat: 100"
+        self.assertEqual(str(bug),bug_str)
+
+        self.bug1.bug_tasks = [self.task1]
+        bug = lp_bug(1234567, self.lp)
+        bug_str = "LP: #1234567 : This is the title of a bug\n"\
+            "Heat: 100\n - systemd:\n   - Impish : New (Critical)"
+        self.assertEqual(str(bug), bug_str)
+
+    def test_bug_dict(self):
+        bug = lp_bug(1234567, self.lp)
+        bug_dict = {'id': 1234567,
+                    'title': 'This is the title of a bug',
+                    'packages': {}}
+
+        self.assertDictEqual(bug.dict(), bug_dict)
+
+    def test_bug_repr(self):
+        bug = lp_bug(1234567, self.lp)
+        bug_dict = {'id': 1234567,
+                    'title': 'This is the title of a bug',
+                    'packages': {}}
+
+        self.assertEqual(bug.__repr__(), bug_dict.__str__())
 
 # =============================================================================
