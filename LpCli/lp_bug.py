@@ -18,9 +18,7 @@ ubuntu_version = {
 
 class lp_bug():
     def __init__(self, id, lp_api):
-        if type(id) is not int:
-            raise TypeError("bug id should be an integer")
-        self.id = id
+        self.id = int(id)
 
         if not lp_api:
             raise ValueError("Error with Launchpad API")
@@ -68,6 +66,7 @@ class lp_bug():
                 self.packages_info[package_name]["series"][serie]["importance"]\
                     = task.importance
 
+    @property
     def affected_packages(self):
         """
         return list of packages affected by this bug in a form of string list
@@ -103,7 +102,7 @@ class lp_bug():
     def __str__(self):
         string = "LP: #{} : {}".format(self.id, self.title)
         string += "\nHeat: {}".format(self.heat)
-        for pkg in self.affected_packages():
+        for pkg in self.affected_packages:
             string += "\n - {}:".format(pkg)
             for serie in self.affected_series(pkg):
                 string += "\n   - {} : {} ({})".\

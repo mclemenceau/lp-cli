@@ -1,204 +1,212 @@
 import pytest
 
-from unittest import TestCase
 from unittest.mock import Mock
 
 from LpCli.lp_bug import lp_bug, ubuntu_devel
 
 
-class test_lp_bug(TestCase):
+@pytest.fixture
+def lp():
+    bug1 = Mock()
+    bug1.title = "This is the title of a bug"
+    bug1.description = "This is the longer description"
+    bug1.heat = "100"
+    bug1.importance = "Undecided"
+    bug1.bug_tasks = [
+        Mock(bug_target_name=n, status=s)
+        for n, s in zip(['systemd (Ubuntu)',
+                         'vim (Debian)',
+                         'glibc (Ubuntu)'],
+                        ['New',
+                         'Confirmed',
+                         'New'])
+    ]
 
-    def setUp(self):
-        self.bug1 = Mock()
-        self.bug1.title = "This is the title of a bug"
-        self.bug1.description = "This is the longer description"
-        self.bug1.heat = "100"
-        self.bug1.importance = "Undecided"
-        self.bug1.bug_tasks = []
+    bug2 = Mock()
+    bug2.title = "This is the title of another bug"
+    bug2.description = "This is the longer description"
+    bug2.heat = "200"
+    bug2.importance = "Undecided"
+    bug2.bug_tasks = [
+        Mock(bug_target_name=s)
+        for s in [
+            'systemd (Ubuntu)',
+            'systemd (Ubuntu Focal)',
+            'systemd (Ubuntu Bionic)',
+            'vim (Debian)']
+    ]
 
-        self.task1 = Mock()
-        self.task2 = Mock()
-        self.task3 = Mock()
-        self.task4 = Mock()
-        self.task5 = Mock()
-        self.task6 = Mock()
-        self.task7 = Mock()
-        self.task8 = Mock()
-        self.task9 = Mock()
-        self.task10 = Mock()
-        self.task11 = Mock()
+    bug3 = Mock()
+    bug3.title = "This is the title of a third bug"
+    bug3.description = "This is the longer description"
+    bug3.heat = "300"
+    bug3.importance = "Undecided"
+    bug3.bug_tasks = [
+        Mock(bug_target_name=n, status=s)
+        for n, s in zip(
+            ['systemd (Ubuntu)',
+             'systemd (Ubuntu Focal)',
+             'systemd (Ubuntu Bionic)',
+             'vim (Debian)',
+             'glibc (Ubuntu)',
+             'glibc (Ubuntu Focal)',
+             'glibc (Ubuntu None)',
+             'glibc !@#$)',
+             'glibc (Ubuntu Bionic)'],
+            ['New',
+             'New',
+             'New',
+             'New',
+             'New',
+             'Incomplete',
+             'New',
+             'New',
+             'Confirmed']
+        )
+    ]
 
-        self.task1.bug_target_name = 'systemd (Ubuntu)'
-        self.task1.status = 'New'
-        self.task1.importance = 'Critical'
-        self.task2.bug_target_name = 'vim (Debian)'
-        self.task2.status = 'Confirmed'
-        self.task3.bug_target_name = 'glibc (Ubuntu)'
-        self.task3.status = 'New'
-        self.task4.bug_target_name = 'glibc (Ubuntu Focal)'
-        self.task4.status = 'Incomplete'
-        self.task5.bug_target_name = 'glibc (Ubuntu None)'
-        self.task5.status = 'Triaged'
-        self.task6.bug_target_name = 'glibc !@#$)'
-        self.task6.status = 'Incomplete'
-        self.task7.bug_target_name = 'systemd (Ubuntu Focal)'
-        self.task7.status = 'Fix Committed'
-        self.task8.bug_target_name = 'systemd (Ubuntu Bionic)'
-        self.task8.status = 'Fix Released'
-        self.task9.bug_target_name = 'glibc (Ubuntu Bionic)'
-        self.task9.status = 'Triaged'
+    bug4 = Mock()
+    bug4.title = "This is the title of a casper bug"
+    bug4.description = "This is the longer description"
+    bug4.heat = "350"
+    bug4.importance = "Undecided"
+    bug4.bug_tasks = [
+        Mock(bug_target_name=n, status=s)
+        for n, s in zip(
+            ['casper (Ubuntu)',
+             'casper (Ubuntu '+ubuntu_devel+')'],
+            ['New', 'New'])
+    ]
 
-        self.task10.bug_target_name = 'casper (Ubuntu)'
-        self.task10.status = 'New'
-        self.task11.bug_target_name = 'casper (Ubuntu '+ubuntu_devel+')'
-        self.task11.status = 'Fix Released'
+    bug5 = Mock()
+    bug5.title = "This is the title of a bug"
+    bug5.heat = "100"
+    bug5.bug_tasks = []
 
-        self.lp = Mock()
-        self.lp.bugs = {1234567: self.bug1}
+    bug6 = Mock()
+    bug6.title = "This is the title of a bug"
+    bug6.heat = "100"
+    bug6.bug_tasks = [Mock(
+            bug_target_name='systemd (Ubuntu)',
+            status='New',
+            importance='Critical')]
 
-    def tearDown(self):
-        pass
+    return Mock(bugs={
+            1: bug1,
+            2: bug2,
+            3: bug3,
+            4: bug4,
+            5: bug5,
+            6: bug6
+                })
 
-    def test_bug_init_bad_lp_api(self):
-        with pytest.raises(ValueError):
-            return lp_bug(1234567, None)
+def test_bug_init_bad_lp_api():
+    with pytest.raises(ValueError):
+        return lp_bug(1234567, None)
 
-    def test_bug_init_bad_type_bug(self):
-        with pytest.raises(TypeError):
-            return lp_bug("bad", self.lp)
 
-    def test_bug_init_bad_bug_doesnt_exist(self):
-        with pytest.raises(KeyError):
-            return lp_bug(123456789, self.lp)
+def test_bug_init_bad_type_bug(lp):
+    with pytest.raises(ValueError):
+        return lp_bug("bad", lp)
 
-    def test_default_init(self):
-        bug = lp_bug(1234567, self.lp)
-        self.assertEqual(bug.id, 1234567)
-        self.assertEqual(bug.title, "This is the title of a bug")
-        self.assertEqual(bug.description, "This is the longer description")
-        self.assertEqual(bug.heat, "100")
 
-    def test_affected_packages(self):
-        self.bug1.bug_tasks = [self.task1, self.task2, self.task3]
-        bug = lp_bug(1234567, self.lp)
+def test_bug_init_bad_bug_doesnt_exist(lp):
+    with pytest.raises(KeyError):
+        return lp_bug(123456789, lp)
 
-        packages = bug.affected_packages()
-        self.assertEqual(len(packages), 2)
-        self.assertListEqual(
-            packages, ['systemd', 'glibc'])
 
-        self.bug1.bug_tasks = [self.task1, self.task7, self.task8]
-        bug = lp_bug(1234567, self.lp)
-        packages = bug.affected_packages()
-        self.assertEqual(len(packages), 1)
-        self.assertListEqual(
-            packages, ['systemd'])
+def test_default_init(lp):
+    bug = lp_bug(1, lp)
+    assert bug.id == 1
+    assert bug.title == "This is the title of a bug"
+    assert bug.description == "This is the longer description"
+    assert bug.heat == "100"
 
-    def test_affected_series(self):
-        self.bug1.bug_tasks = [
-                            self.task1, self.task2, self.task3,
-                            self.task4, self.task5, self.task6,
-                            self.task7, self.task8, self.task9]
 
-        bug = lp_bug(1234567, self.lp)
+def test_affected_packages(lp):
+    bug1 = lp_bug(1, lp)
+    assert bug1.affected_packages == ['systemd', 'glibc']
 
-        # Simple default series test
-        series = bug.affected_series('systemd')
+    bug2 = lp_bug(2, lp)
+    assert bug2.affected_packages == ['systemd']
 
-        self.assertEqual(len(series), 3)
-        self.assertListEqual(
-            series, ['Impish', 'Focal', 'Bionic'])
 
-        # Wrong Serie vim (Debian)
-        series = bug.affected_series('vim')
-        self.assertEqual(len(series), 0)
+def test_affected_series(lp):
 
-        # Bad Serie glibc !@#$)
-        series = bug.affected_series('glibc')
-        print(series)
-        self.assertEqual(len(series), 3)
+    bug = lp_bug(3, lp)
 
-    def test_affected_series_double(self):
-        self.bug1.bug_tasks = [self.task10, self.task11]
+    # Simple default serie test
+    series = bug.affected_series('systemd')
 
-        bug = lp_bug(1234567, self.lp)
+    assert series == ['Impish', 'Focal', 'Bionic']
 
-        series = bug.affected_series('casper')
-        self.assertEqual(len(series), 1)
-        self.assertListEqual(
-            series, ['Impish'])
+    # Wrong Serie vim (Debian)
+    series = bug.affected_series('vim')
+    assert series == []
 
-    def test_affected_versions(self):
-        self.bug1.bug_tasks = [
-                            self.task1, self.task2, self.task3,
-                            self.task4, self.task5, self.task6,
-                            self.task7, self.task8, self.task9,
-                            self.task10, self.task11]
+    # Ignore Bad serie glibc !@#$)
+    series = bug.affected_series('glibc')
+    assert series == ['Impish', 'Focal', 'Bionic']
 
-        bug = lp_bug(1234567, self.lp)
 
-        versions = bug.affected_versions('systemd')
+def test_affected_series_double(lp):
+    bug = lp_bug(4, lp)
 
-        self.assertEqual(len(versions), 3)
-        self.assertListEqual(
-            versions, ['21.10', '20.04', '18.04'])
+    series = bug.affected_series('casper')
+    assert series == ['Impish']
 
-        versions = bug.affected_versions('vim')
 
-        self.assertEqual(len(versions), 0)
+def test_affected_versions(lp):
+    bug = lp_bug(3, lp)
 
-        versions = bug.affected_versions('glibc')
+    versions = bug.affected_versions('systemd')
+    assert versions == ['21.10', '20.04', '18.04']
 
-        self.assertEqual(len(versions), 3)
-        self.assertListEqual(
-            versions, ['21.10', '20.04', '18.04'])
+    versions = bug.affected_versions('vim')
+    assert versions == []
 
-    def test_package_detail(self):
-        self.bug1.bug_tasks = [
-                            self.task1, self.task2, self.task3,
-                            self.task4, self.task5, self.task6,
-                            self.task7, self.task8, self.task9,
-                            self.task10, self.task11]
+    versions = bug.affected_versions('glibc')
+    assert versions == ['21.10', '20.04', '18.04']
 
-        bug = lp_bug(1234567, self.lp)
 
-        # test with a missing serie and make sure it defaults to ubuntu_devel
-        self.assertEqual(
-            bug.package_detail("glibc", 'Focal', "status"), "Incomplete"
-            )
-        self.assertEqual(
-            bug.package_detail("systemd", ubuntu_devel, "status"), "New"
-            )
-        # test for detail that doesn't exist
-        self.assertEqual(
-            bug.package_detail("systemd", ubuntu_devel, "age"), ""
-            )
+def test_package_detail(lp):
+    bug = lp_bug(3, lp)
 
-    def test_bug_str(self):
-        bug = lp_bug(1234567, self.lp)
-        bug_str = "LP: #1234567 : This is the title of a bug\nHeat: 100"
-        self.assertEqual(str(bug),bug_str)
+    # test with a missing serie and make sure it defaults to ubuntu_devel
+    assert bug.package_detail("glibc", 'Focal', "status") == "Incomplete"
 
-        self.bug1.bug_tasks = [self.task1]
-        bug = lp_bug(1234567, self.lp)
-        bug_str = "LP: #1234567 : This is the title of a bug\n"\
-            "Heat: 100\n - systemd:\n   - Impish : New (Critical)"
-        self.assertEqual(str(bug), bug_str)
+    assert bug.package_detail("systemd", ubuntu_devel, "status") == "New"
 
-    def test_bug_dict(self):
-        bug = lp_bug(1234567, self.lp)
-        bug_dict = {'id': 1234567,
-                    'title': 'This is the title of a bug',
-                    'packages': {}}
+    # test for detail that doesn't exist
+    assert bug.package_detail("systemd", ubuntu_devel, "age") == ""
 
-        self.assertDictEqual(bug.dict(), bug_dict)
 
-    def test_bug_repr(self):
-        bug = lp_bug(1234567, self.lp)
-        bug_dict = {'id': 1234567,
-                    'title': 'This is the title of a bug',
-                    'packages': {}}
+def test_bug_str(lp):
+    bug = lp_bug(5, lp)
+    bug_str = "LP: #5 : This is the title of a bug\nHeat: 100"
+    assert str(bug) == bug_str
 
-        self.assertEqual(bug.__repr__(), bug_dict.__str__())
+    bug = lp_bug(6, lp)
+    bug_str = "LP: #6 : This is the title of a bug\n"\
+        "Heat: 100\n - systemd:\n   - Impish : New (Critical)"
+    assert str(bug) == bug_str
+
+
+def test_bug_dict(lp):
+    bug = lp_bug(5, lp)
+    bug_dict = {'id': 5,
+                'title': 'This is the title of a bug',
+                'packages': {}}
+
+    assert bug.dict() == bug_dict
+
+
+def test_bug_repr(lp):
+    bug = lp_bug(5, lp)
+    bug_dict = {'id': 5,
+                'title': 'This is the title of a bug',
+                'packages': {}}
+
+    assert bug.__repr__() == bug_dict.__str__()
 
 # =============================================================================
