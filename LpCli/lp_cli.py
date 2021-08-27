@@ -1,26 +1,19 @@
+import argparse
 from launchpadlib.launchpad import Launchpad
-from optparse import OptionParser
+
 from LpCli.lp_bug import lp_bug
 
 
-def main():
-    usage = """\
-    usage: lp-cli bug_id
+def main(args=None):
+    parser = argparse.ArgumentParser(
+        description="A script to query Launchpad bugs, e.g. lp-cli 1934747")
+    parser.add_argument(
+        'bug_id', type=int,
+        help="The numeric identifier of the bug to query")
+    config = parser.parse_args(args)
 
-    Ex: lp-cli 1934747
-    """
-    opt_parser = OptionParser(usage)
-    opts, args = opt_parser.parse_args()
-
-    if len(args) >= 1:
-        lp = Launchpad.login_with('foundations', 'production', version='devel')
-
-        bug = lp_bug(int(args[0]), lp)
-
-        print(bug)
-
-        return 0
-
-    return 1
+    lp = Launchpad.login_with('foundations', 'production', version='devel')
+    bug = lp_bug(config.bug_id, lp)
+    print(bug)
 
 # =============================================================================
