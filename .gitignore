@@ -5,3 +5,6 @@ __pycache__/
 # Ignore test artefacts
 .coverage
 .pytest_cache/
+
+# Ignore pip artefacts
+*.egg-info/
